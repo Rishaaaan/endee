@@ -3,12 +3,12 @@
       <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
       <source media="(prefers-color-scheme: light)" srcset="docs/assets/logo-light.svg">
       <img height="100" alt="Endee" src="docs/assets/logo-dark.svg">
+      # Hi, I am Rishan, My project's Readme file is in the SemanticBI folder
   </picture>
 </p>
 
 <p align="center">
     <b>High-performance open-source vector database for AI search, RAG, semantic search, and hybrid retrieval.</b>
-    <b>Hi ! iam Rishan, my project's readme file is in the SemanticBI folder</b>
 </p>
 
 <p align="center">

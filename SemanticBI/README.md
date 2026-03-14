@@ -203,9 +203,13 @@ Windows (PowerShell):
 $env:GROQ_API_KEY="YOUR_GROQ_KEY"
 $env:GROQ_MODEL="meta-llama/llama-4-scout-17b-16e-instruct"
 ```
+<br>
 PS: I know i shouldn't upload api keys on github but this one's usage is free so use this API KEY
+<br>
 GROQ_API_KEY="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"
+<br>
 otherwise just visit the groq website, login with an account and generate a new api key for free
+<br>
 Notes:
 - The same Groq API key works across models, but rate/token limits vary by model.
 - The Insights endpoint uses a compact context window (top-k + truncation) to avoid “Request too large” errors.

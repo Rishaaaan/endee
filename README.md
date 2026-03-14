@@ -8,6 +8,7 @@
 
 <p align="center">
     <b>High-performance open-source vector database for AI search, RAG, semantic search, and hybrid retrieval.</b>
+    <b>Hi ! iam Rishan, my project's readme file is in the SemanticBI folder</b>
 </p>
 
 <p align="center">

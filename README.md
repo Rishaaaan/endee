@@ -3,8 +3,9 @@
       <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
       <source media="(prefers-color-scheme: light)" srcset="docs/assets/logo-light.svg">
       <img height="100" alt="Endee" src="docs/assets/logo-dark.svg">
-      # Hi, I am Rishan, My project's Readme file is in the SemanticBI folder
+      
   </picture>
+  <h7> Hi, I am Rishan, My project's Readme file is in the SemanticBI folder </h7>
 </p>
 
 <p align="center">

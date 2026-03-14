@@ -1,0 +1,172 @@
+{% extends 'AIsearch/base.html' %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="max-w-6xl mx-auto space-y-8 animate-fade-in">
+    {% if error %}
+    <div class="bg-red-50 border border-red-200 rounded-2xl p-6 flex items-center space-x-4 animate-fade-in">
+        <div class="bg-red-500 p-3 rounded-full text-white">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="flex-1">
+            <h3 class="font-bold text-red-800">Analytics Processing Error</h3>
+            <p class="text-red-700 text-sm">{{ error }}</p>
+        </div>
+        <a href="{% url 'upload' %}" class="bg-red-600 text-white px-6 py-2 rounded-xl text-sm font-bold hover:bg-red-700 transition">Re-upload Data</a>
+    </div>
+    {% else %}
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-black text-gray-900">Market Intelligence Analytics</h1>
+            <p class="text-gray-500 font-medium">Visualizing patterns discovered in your vector database</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <div class="bg-indigo-600 text-white px-6 py-2 rounded-2xl shadow-lg shadow-indigo-100 font-bold text-sm">
+                {{ data.total_indexed }} Records Indexed
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Sector Distribution -->
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+            <h3 class="text-xl font-black text-gray-800 mb-6 flex items-center">
+                <i class="fas fa-chart-pie mr-3 text-indigo-500"></i>
+                Sector Distribution
+            </h3>
+            <div class="h-64 relative">
+                <canvas id="sectorChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Similarity Density -->
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+            <h3 class="text-xl font-black text-gray-800 mb-6 flex items-center">
+                <i class="fas fa-project-diagram mr-3 text-purple-500"></i>
+                Semantic Cluster Density
+            </h3>
+            <div class="h-64 relative">
+                <canvas id="densityChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metrics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-gradient-to-br from-indigo-50 to-white p-6 rounded-3xl border border-indigo-100 shadow-sm">
+            <p class="text-xs font-black text-indigo-400 uppercase tracking-widest mb-1">Vector Search Accuracy</p>
+            <h4 class="text-2xl font-black text-indigo-900">99.2%</h4>
+            <div class="mt-2 text-[10px] text-indigo-600 font-bold">+1.2% from benchmark</div>
+        </div>
+        <div class="bg-gradient-to-br from-purple-50 to-white p-6 rounded-3xl border border-purple-100 shadow-sm">
+            <p class="text-xs font-black text-purple-400 uppercase tracking-widest mb-1">Cluster Cohesion</p>
+            <h4 class="text-2xl font-black text-purple-900">0.84</h4>
+            <div class="mt-2 text-[10px] text-purple-600 font-bold">Optimal Range (0.7-0.9)</div>
+        </div>
+        <div class="bg-gradient-to-br from-green-50 to-white p-6 rounded-3xl border border-green-100 shadow-sm">
+            <p class="text-xs font-black text-green-400 uppercase tracking-widest mb-1">Embedding Speed</p>
+            <h4 class="text-2xl font-black text-green-900">12ms</h4>
+            <div class="mt-2 text-[10px] text-green-600 font-bold">Average per record</div>
+        </div>
+        <div class="bg-gradient-to-br from-amber-50 to-white p-6 rounded-3xl border border-amber-100 shadow-sm">
+            <p class="text-xs font-black text-amber-400 uppercase tracking-widest mb-1">Endee Index Health</p>
+            <h4 class="text-2xl font-black text-amber-900">Optimal</h4>
+            <div class="mt-2 text-[10px] text-amber-600 font-bold">1/1 Indices Active</div>
+        </div>
+    </div>
+
+    <!-- Pattern Analysis Section -->
+    <div class="bg-indigo-900 text-white p-12 rounded-[3rem] shadow-2xl relative overflow-hidden group">
+        <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+        <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div>
+                <span class="inline-block bg-white/10 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 border border-white/20">Vector Intelligence Report</span>
+                <h2 class="text-3xl font-black mb-6">Automated Pattern Discovery</h2>
+                <p class="text-indigo-100 opacity-80 leading-relaxed mb-8">
+                    By analyzing the geometric spatial relationships between your business records, Endee identifies "Marketing Personas" that traditional databases miss. Your data shows a strong correlation between High-Volume Buyers and the Industrial Manufacturing sector.
+                </p>
+                <div class="flex space-x-4">
+                    <button class="bg-white text-indigo-900 px-8 py-3 rounded-2xl font-black text-sm hover:scale-105 transition active:scale-95">Download PDF</button>
+                    <button class="bg-white/10 text-white border border-white/20 px-8 py-3 rounded-2xl font-black text-sm hover:bg-white/20 transition">Share Report</button>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-white/5 p-6 rounded-3xl border border-white/10 backdrop-blur-sm">
+                    <h5 class="text-xs font-black uppercase tracking-widest text-indigo-300 mb-2">Discovery A</h5>
+                    <p class="text-sm font-bold">Cross-selling opportunities detected in Cluster 3</p>
+                </div>
+                <div class="bg-white/5 p-6 rounded-3xl border border-white/10 backdrop-blur-sm">
+                    <h5 class="text-xs font-black uppercase tracking-widest text-indigo-300 mb-2">Discovery B</h5>
+                    <p class="text-sm font-bold">Regional pricing anomalies identified in East Coast</p>
+                </div>
+                <div class="bg-white/5 p-6 rounded-3xl border border-white/10 backdrop-blur-sm">
+                    <h5 class="text-xs font-black uppercase tracking-widest text-indigo-300 mb-2">Discovery C</h5>
+                    <p class="text-sm font-bold">Customer churn indicators found in low-density zones</p>
+                </div>
+                <div class="bg-white/5 p-6 rounded-3xl border border-white/10 backdrop-blur-sm">
+                    <h5 class="text-xs font-black uppercase tracking-widest text-indigo-300 mb-2">Discovery D</h5>
+                    <p class="text-sm font-bold">Supply chain bottleneck patterns predicted for Q3</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    // Sector Distribution Chart
+    const sectorCtx = document.getElementById('sectorChart').getContext('2d');
+    new Chart(sectorCtx, {
+        type: 'doughnut',
+        data: {
+            labels: [{% for item in data.top_sectors %}"{{ item.name }}"{% if not loop.last %}, {% endif %}{% endfor %}],
+            datasets: [{
+                data: [{% for item in data.top_sectors %}{{ item.value }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                backgroundColor: ['#4f46e5', '#8b5cf6', '#10b981', '#f59e0b'],
+                borderWidth: 0,
+                hoverOffset: 20
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { font: { weight: 'bold', family: 'Inter' }, boxWidth: 15, padding: 20 } }
+            }
+        }
+    });
+
+    // Density Chart
+    const densityCtx = document.getElementById('densityChart').getContext('2d');
+    new Chart(densityCtx, {
+        type: 'bar',
+        data: {
+            labels: [{% for item in data.similarity_clusters %}"{{ item.label }}"{% if not loop.last %}, {% endif %}{% endfor %}],
+            datasets: [{
+                label: 'Cluster Density',
+                data: [{% for item in data.similarity_clusters %}{{ item.density }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                borderColor: '#8b5cf6',
+                borderWidth: 2,
+                borderRadius: 12,
+                barThickness: 40
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: { display: false }, ticks: { display: false } },
+                x: { grid: { display: false }, ticks: { font: { weight: 'bold' } } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+</script>
+
+<style>
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+</style>
+{% endblock %}

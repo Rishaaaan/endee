@@ -1,0 +1,67 @@
+{% extends 'AIsearch/base.html' %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-8 animate-fade-in">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-black text-gray-900">Dataset History</h1>
+            <p class="text-gray-500 font-medium">Manage and switch between your uploaded intelligence sources</p>
+        </div>
+        <a href="{% url 'upload' %}" class="bg-indigo-600 text-white px-6 py-3 rounded-2xl shadow-lg shadow-indigo-100 font-bold text-sm hover:bg-indigo-700 transition transform hover:-translate-y-1">
+            <i class="fas fa-plus mr-2"></i> New Upload
+        </a>
+    </div>
+
+    <div class="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-gray-50/50 border-b border-gray-100">
+                    <th class="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">Dataset Name</th>
+                    <th class="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">Index Reference</th>
+                    <th class="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">Records</th>
+                    <th class="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">Uploaded</th>
+                    <th class="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest text-right">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                {% for dataset in datasets %}
+                <tr class="hover:bg-indigo-50/30 transition-colors group">
+                    <td class="px-8 py-6">
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-indigo-100 text-indigo-600 p-2.5 rounded-xl">
+                                <i class="fas fa-file-csv"></i>
+                            </div>
+                            <span class="font-bold text-gray-900">{{ dataset.name }}</span>
+                        </div>
+                    </td>
+                    <td class="px-8 py-6 text-sm font-mono text-gray-500">{{ dataset.index_name }}</td>
+                    <td class="px-8 py-6 text-sm font-bold text-gray-700">{{ dataset.total_rows }}</td>
+                    <td class="px-8 py-6 text-sm text-gray-500">{{ dataset.uploaded_at|date:"M d, Y H:i" }}</td>
+                    <td class="px-8 py-6 text-right">
+                        {% if request.session.active_dataset_id == dataset.id %}
+                        <span class="bg-green-100 text-green-700 px-4 py-1.5 rounded-full text-xs font-black border border-green-200">
+                            <i class="fas fa-check-circle mr-1"></i> ACTIVE
+                        </span>
+                        {% else %}
+                        <a href="{% url 'select_dataset' dataset.id %}" class="bg-gray-100 text-gray-600 px-4 py-1.5 rounded-full text-xs font-black hover:bg-indigo-600 hover:text-white transition-all">
+                            ACTIVATE
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="px-8 py-20 text-center">
+                        <div class="flex flex-col items-center">
+                            <i class="fas fa-database text-4xl text-gray-200 mb-4"></i>
+                            <h3 class="text-xl font-bold text-gray-400">No datasets found</h3>
+                            <p class="text-gray-400 text-sm mt-1">Upload your first Excel or CSV to get started.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

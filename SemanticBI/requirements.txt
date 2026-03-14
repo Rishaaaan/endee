@@ -1,0 +1,8 @@
+django
+pandas
+openpyxl
+sentence-transformers
+requests
+scikit-learn
+numpy
+torch

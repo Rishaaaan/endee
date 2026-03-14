@@ -1,100 +1,248 @@
-# SemanticBI — AI Business Intelligence Engine
+# SemanticBI — Endee-Powered Semantic Business Intelligence
 
-SemanticBI is a professional-grade AI intelligence dashboard powered by **Endee**. It allows you to upload Excel/CSV datasets and perform semantic discovery, dynamic AI insights, and market analytics using vector search technology.
+SemanticBI is a Django web app that turns messy business spreadsheets into a **queryable semantic knowledge base** using **Endee** (vector database). You can upload Excel/CSV datasets, index each row as a vector, run semantic search, apply metadata filters, and generate analyst-style insights via a lightweight RAG pipeline.
 
 ---
 
-## 🚀 Quick Start (Local Setup)
+## Problem Statement
 
-### 1. Initialize Endee Vector Database
-Endee must be running locally to handle vector operations.
+Traditional BI tools assume:
+- data is already modeled into clean tables
+- analysts know which filters/columns to use
+- questions can be answered with dashboards and fixed SQL
+
+In real workflows (sales leads, procurement, orders, CRM exports, supplier catalogs), the data is:
+- high-dimensional
+- inconsistent column naming
+- searched by “meaning” ("find buyers like X", "top products among these customers")
+
+SemanticBI solves this by using **Endee vector search** as the retrieval layer and letting users ask questions in natural language.
+
+---
+
+## System Design (High Level)
+
+### Data Flow
+
+1. **Upload Dataset** (`/`)
+2. **Parse + Clean** (pandas) and convert each row into a short semantic sentence
+3. **Embed** text using `SentenceTransformer(all-MiniLM-L6-v2)` → 384-d vectors
+4. **Store** vectors + metadata in Endee (one **unique index per dataset**)
+5. **Query**
+   - **Search page**: dense vector similarity retrieval
+   - **Insights page**: retrieval + aggregations + optional Groq LLM generation
+   - **Analytics page**: basic distributions computed from retrieved samples
+6. **Multi-dataset management** via Dataset history and an “active dataset” stored in session
+
+### Key Design Choices
+
+- **One Endee index per upload**: avoids overwriting old data and enables dataset switching.
+- **Metadata stored alongside each vector**: enables filter-aware retrieval and evidence display.
+- **Compact RAG context**: prevents Groq “Request too large” errors.
+
+---
+
+## How Endee is Used (Core of the Project)
+
+Endee is the authoritative retrieval and storage engine.
+
+### What we store in Endee
+
+Each dataset row becomes a vector document:
+
+- **`id`**: `row_<row_index>`
+- **`vector`**: 384-d embedding
+- **`meta.text`**: the row converted into a natural-language sentence (used for human-readable evidence)
+- **`meta.original_row`**: full row metadata as JSON-safe values (used for UI display and filtering)
+
+### Index creation
+
+On ingestion we ensure an index exists using:
+
+- cosine similarity
+- 384 dimensions
+- `Precision.INT8`
+
+### Querying + Filtering
+
+Endee supports **payload (metadata) filtering** (MongoDB-style). This repo implements:
+
+- **Endee-side filtering (best-effort)**: passes metadata filters into `index.query(...)` when supported by the installed SDK.
+- **Local fallback filtering**: if SDK filter kwargs are not supported or the filter is too strict.
+
+Filter syntax in the UI:
+
+```text
+top customers country:India city:Pune
+```
+
+This becomes a metadata filter object roughly like:
+
+```python
+{"country": "India", "city": "Pune"}
+```
+
+---
+
+## Repository Walkthrough (Endee-Focused)
+
+### `AIsearch/services/endee_client.py`
+
+Endee SDK wrapper used everywhere else.
+
+- **`ensure_index(name, dimension)`**
+  - lists existing indexes
+  - creates a new Endee index if missing
+
+- **`upsert_vectors(vectors, name)`**
+  - batches upserts (1000/vector batch)
+  - calls `index.upsert([...])`
+
+- **`search_vectors(query_vector, name, top_k, metadata_filter=None)`**
+  - calls `index.query(vector=..., top_k=...)`
+  - attempts to pass `metadata_filter` using common kwarg names (`filter`, `filters`, `payload_filter`, `where`)
+  - falls back to vector-only query if filtering kwargs are unsupported
+
+### `AIsearch/services/ingestion.py`
+
+Responsible for turning files into Endee vectors.
+
+- **`parse_file()`**
+  - reads CSV or Excel
+  - fills NaNs
+
+- **`row_to_text(row)`**
+  - converts a row into a sentence: `The <col> is <value>. ...`
+
+- **`clean_metadata()`**
+  - converts numpy types to JSON-safe Python primitives
+  - prevents integer range errors
+
+- **`process_dataset(file_path, original_filename)`**
+  - generates a unique index name like `idx_<filename>_<timestamp>`
+  - calls `EndeeClient.ensure_index(...)`
+  - embeds all rows and upserts vectors into Endee
+
+### `AIsearch/services/embeddings.py`
+
+Embedding model used for both ingestion and querying:
+
+- Loads `SentenceTransformer(all-MiniLM-L6-v2)` once (singleton)
+- Produces 384-dimensional vectors
+
+### `AIsearch/services/rag_engine.py`
+
+RAG orchestration around Endee retrieval:
+
+- **`retrieve_relevant_rows(query, index_name, top_k)`**
+  - parses `key:value` filters
+  - embeds the cleaned query
+  - queries Endee with optional `metadata_filter`
+  - falls back to vector-only + local filtering if needed
+  - returns results as `{score, metadata, text}`
+
+- **`generate_insight(query, retrieved_rows)`**
+  - computes lightweight aggregations (top entities, totals)
+  - builds a **compact** context window
+  - calls Groq (optional) for natural-language analysis
+  - gracefully falls back to a deterministic summary if Groq rejects the request (HTTP 413)
+
+### `AIsearch/models.py`
+
+`Dataset` model stores dataset history (name, file path, Endee index name, total rows). This is how the UI can switch which Endee index is “active”.
+
+### `AIsearch/views.py`
+
+The web endpoints:
+
+- **Upload**: ingest file → create Endee index → upsert vectors
+- **Search**: query active Endee index and display retrieved rows
+- **Insights**: query Endee (top-k is intentionally smaller) → RAG generation
+- **Analytics**: computes simple charts from sampled retrieval
+- **History / Select**: switch active Endee dataset index in session
+
+---
+
+## Setup & Run (Local)
+
+### 1) Start Endee
+
+Endee must be running locally on port `8080`.
 
 ```bash
-# Pull and run Endee using Docker
 docker run -p 8080:8080 endeeai/endee:latest
 ```
 
-### 2. Django Project Setup
-Ensure you have Python 3.8+ installed.
+### 2) Install Python dependencies
 
 ```bash
-# Install dependencies
 pip install -r requirements.txt
-
-# Navigate to the project directory
-cd SemanticBI
-
-# Initialize database
-python manage.py makemigrations
-python manage.py migrate
-
-# Start the development server
-python manage.py runserver 8001
 ```
 
-### 3. Configure Groq (LLM for Insights)
-SemanticBI uses Groq's OpenAI-compatible API for natural-language insight generation.
+### 3) Django migrations
 
-Set these environment variables before running Django:
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
 
-For Linux/MacOS
+### 4) (Optional) Configure Groq for LLM Insights
+
+SemanticBI works without Groq (deterministic insights). To enable LLM insights:
+
+Linux / macOS:
+
 ```bash
 export GROQ_API_KEY="YOUR_GROQ_KEY"
 export GROQ_MODEL="meta-llama/llama-4-scout-17b-16e-instruct"
 ```
 
-For Windows:
+Windows (PowerShell):
 
-```bash
+```powershell
 $env:GROQ_API_KEY="YOUR_GROQ_KEY"
 $env:GROQ_MODEL="meta-llama/llama-4-scout-17b-16e-instruct"
 ```
 
-
 Notes:
-- `GROQ_MODEL` is optional. If unset, the app defaults to `meta-llama/llama-4-scout-17b-16e-instruct`.
-- If `GROQ_API_KEY` is not set, the Insights page falls back to a deterministic (non-LLM) summary.
-- The same Groq API key works across models (the key is tied to your Groq account), but rate/token limits vary by model.
-- To avoid Groq "Request too large" (HTTP 413 / TPM) errors, the Insights endpoint retrieves a smaller context window (top-k) and compacts records before calling the LLM.
+- The same Groq API key works across models, but rate/token limits vary by model.
+- The Insights endpoint uses a compact context window (top-k + truncation) to avoid “Request too large” errors.
 
-Access the dashboard at: `http://127.0.0.1:8001`
+### 5) Run the server
 
----
+```bash
+python manage.py runserver 8001
+```
 
-## 🛠️ Core Features
+Open:
 
-### 1. Data Ingestion
-- Upload **Excel (.xlsx, .xls)** or **CSV** files.
-- The system automatically cleans data, handles missing values (NaN), and generates 384-dimensional semantic embeddings.
-- Each dataset is stored in a **unique index** on Endee, allowing for multi-dataset history management.
-
-### 2. Semantic Discovery
-- Search your data using **Natural Language**.
-- Unlike traditional keyword search, SemanticBI finds records based on *meaning* and *context*.
-- Matches are ranked by similarity confidence.
-
-### 3. AI Business Analyst (RAG)
-- Ask complex business questions about your data.
-- The engine uses **Retrieval-Augmented Generation (RAG)** to pull relevant context from Endee and generate dynamic, data-driven insights via Groq.
-- Supports lightweight filter syntax in queries (post-retrieval filtering):
-  - Example: `top customers country:India`
-
-### 4. Market Intelligence Analytics
-- Visualize your data patterns through interactive charts.
-- View sector distributions and semantic cluster densities calculated directly from your live vector database.
+- Upload: `http://127.0.0.1:8001/`
+- Search: `http://127.0.0.1:8001/search/`
+- Insights: `http://127.0.0.1:8001/insights/`
+- Analytics: `http://127.0.0.1:8001/analytics/`
+- Dataset history: `http://127.0.0.1:8001/history/`
 
 ---
 
-## 📁 Project Structure
-- `AIsearch/services/`: Core logic for Endee client, embeddings, and RAG engine.
-- `AIsearch/templates/`: Modern, responsive UI built with TailwindCSS and Framer Motion.
-- `media/`: Temporary storage for uploaded datasets.
+## Demo Queries
+
+Search:
+
+- `indiamart buyers in pune`
+- `suppliers for stainless fasteners`
+
+Insights:
+
+- `top 3 most bought products across all buyers`
+- `top customers country:India`
+- `high value orders city:Pune`
 
 ---
 
-## 💻 Running on another laptop
-1. Copy the entire project folder.
-2. Install Docker and run the Endee container (Step 1).
-3. Install Python requirements (Step 2).
-4. Run `python manage.py migrate` to set up the local SQLite database.
-5. Run the server and start uploading!
+## Running on Another Laptop
+
+1. Clone the repo.
+2. Start Endee (Docker).
+3. `pip install -r requirements.txt`
+4. `python manage.py migrate`
+5. Run Django and upload a dataset.

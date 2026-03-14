@@ -97,7 +97,7 @@ def insights_view(request):
     if query:
         try:
             rag_engine = RAGEngine()
-            retrieved_rows = rag_engine.retrieve_relevant_rows(query, index_name=index_name)
+            retrieved_rows = rag_engine.retrieve_relevant_rows(query, index_name=index_name, top_k=8)
             logger.info(f"Retrieved {len(retrieved_rows)} rows for insights from {index_name}")
             insight = rag_engine.generate_insight(query, retrieved_rows)
         except Exception as e:

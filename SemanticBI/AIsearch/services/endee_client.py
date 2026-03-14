@@ -78,14 +78,27 @@ class EndeeClient:
             print(f"Vector upsert failed: {e}")
             raise
 
-    def search_vectors(self, query_vector, name="business_records", top_k=5):
+    def search_vectors(self, query_vector, name="business_records", top_k=5, metadata_filter=None):
         try:
             index = self.get_index(name)
 
-            results = index.query(
-                vector=query_vector,
-                top_k=top_k
-            )
+            # Endee supports payload filtering (MongoDB-style) according to official docs.
+            # SDK parameter naming can vary by version, so we try a few common names and
+            # gracefully fall back to vector-only search if unsupported.
+            base_kwargs = {
+                "vector": query_vector,
+                "top_k": top_k,
+            }
+
+            if metadata_filter:
+                for filter_kw in ("filter", "filters", "payload_filter", "where"):
+                    try:
+                        results = index.query(**{**base_kwargs, filter_kw: metadata_filter})
+                        return results
+                    except TypeError:
+                        continue
+
+            results = index.query(**base_kwargs)
 
             return results
 

@@ -116,15 +116,23 @@
     {% endif %}
 </div>
 
+{% if data %}
+{{ data.top_sectors|json_script:"topSectorsData" }}
+{{ data.similarity_clusters|json_script:"similarityClustersData" }}
+{% endif %}
+
 <script>
+    const topSectors = JSON.parse(document.getElementById('topSectorsData')?.textContent || '[]');
+    const similarityClusters = JSON.parse(document.getElementById('similarityClustersData')?.textContent || '[]');
+
     // Sector Distribution Chart
     const sectorCtx = document.getElementById('sectorChart').getContext('2d');
     new Chart(sectorCtx, {
         type: 'doughnut',
         data: {
-            labels: [{% for item in data.top_sectors %}"{{ item.name }}"{% if not loop.last %}, {% endif %}{% endfor %}],
+            labels: topSectors.map(s => s.name),
             datasets: [{
-                data: [{% for item in data.top_sectors %}{{ item.value }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                data: topSectors.map(s => s.value),
                 backgroundColor: ['#4f46e5', '#8b5cf6', '#10b981', '#f59e0b'],
                 borderWidth: 0,
                 hoverOffset: 20
@@ -143,10 +151,10 @@
     new Chart(densityCtx, {
         type: 'bar',
         data: {
-            labels: [{% for item in data.similarity_clusters %}"{{ item.label }}"{% if not loop.last %}, {% endif %}{% endfor %}],
+            labels: similarityClusters.map(s => s.label),
             datasets: [{
                 label: 'Cluster Density',
-                data: [{% for item in data.similarity_clusters %}{{ item.density }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                data: similarityClusters.map(s => s.density),
                 backgroundColor: 'rgba(139, 92, 246, 0.2)',
                 borderColor: '#8b5cf6',
                 borderWidth: 2,

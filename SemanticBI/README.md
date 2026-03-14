@@ -186,9 +186,9 @@ python manage.py makemigrations
 python manage.py migrate
 ```
 
-### 4) (Optional) Configure Groq for LLM Insights
+### 4) Configure Groq for LLM Insights
 
-SemanticBI works without Groq (deterministic insights). To enable LLM insights:
+SemanticBI works without Groq (deterministic insights) too. To enable LLM insights:
 
 Linux / macOS:
 
@@ -203,7 +203,9 @@ Windows (PowerShell):
 $env:GROQ_API_KEY="YOUR_GROQ_KEY"
 $env:GROQ_MODEL="meta-llama/llama-4-scout-17b-16e-instruct"
 ```
-
+PS: I know i shouldn't upload api keys on github but this one's usage is free so use this API KEY
+GROQ_API_KEY="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"
+otherwise just visit the groq website, login with an account and generate a new api key for free
 Notes:
 - The same Groq API key works across models, but rate/token limits vary by model.
 - The Insights endpoint uses a compact context window (top-k + truncation) to avoid “Request too large” errors.

@@ -5,7 +5,8 @@
       <img height="100" alt="Endee" src="docs/assets/logo-dark.svg">
       
   </picture>
-  <h7> Hi, I am Rishan, My project's Readme file is in the SemanticBI folder </h7>
+  <br>
+  <h1> Hi, I am Rishan, My project's Readme file is in the SemanticBI folder </h1>
 </p>
 
 <p align="center">
